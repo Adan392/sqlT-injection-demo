@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Secure Access | SQL Injection Demo</title>
+<style>
+  :root{--ink:#182230;--muted:#667085;--line:#d9e0e8;--blue:#1769e0;--blue-dark:#1255b8;--red:#c93636;--green:#18794e;}
+  *{box-sizing:border-box}
+  body{margin:0;background:#f5f7fa;color:var(--ink);font-family:Inter,"Segoe UI",system-ui,-apple-system,sans-serif;min-height:100vh;}
+  .topbar{height:68px;background:#fff;border-bottom:1px solid #e7ebf0;display:flex;align-items:center;justify-content:space-between;padding:0 max(24px,calc((100% - 1100px)/2));}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;letter-spacing:-.2px;}
+  .brand-mark{width:32px;height:32px;border-radius:9px;background:#eaf2ff;color:var(--blue);display:grid;place-items:center;font-size:17px;}
+  .top-note{font-size:12px;color:#667085;border:1px solid #e1e6ed;border-radius:20px;padding:7px 11px;background:#fff;}
+  main{width:min(100% - 32px,1040px);margin:45px auto 36px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start;}
+  .intro{padding:25px 12px 0 0;}
+  .eyebrow{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--blue);margin-bottom:13px;}
+  h1{font-size:32px;line-height:1.2;letter-spacing:-1px;margin:0 0 12px;font-weight:700;color:#182230;}
+  .intro p{font-size:14px;line-height:1.75;color:#667085;max-width:420px;margin:0;}
+  .note{display:flex;gap:10px;align-items:flex-start;margin-top:28px;padding:14px 15px;border:1px solid #dfe7f1;border-radius:11px;background:#fff;max-width:420px;}
+  .note-icon{color:var(--blue);font-weight:700;}
+  .note strong{display:block;font-size:12px;margin-bottom:4px;}
+  .note span{display:block;color:#667085;font-size:12px;line-height:1.55;}
+  .card{background:#fff;border:1px solid #e3e8ef;border-radius:15px;padding:28px;box-shadow:0 8px 26px rgba(16,24,40,.055);}
+  .card-head{margin-bottom:23px;}
+  h2{font-size:21px;letter-spacing:-.4px;margin:0 0 5px;}
+  .sub{color:var(--muted);font-size:13px;line-height:1.5;margin:0;}
+  label{display:block;font-size:12px;font-weight:600;color:#344054;margin:0 0 7px;}
+  input{display:block;width:100%;height:44px;padding:0 13px;border:1px solid #d0d7e2;border-radius:8px;font-size:14px;color:#182230;background:#fff;margin-bottom:18px;outline:none;transition:border-color .15s,box-shadow .15s;}
+  input::placeholder{color:#98a2b3;}
+  input:focus{border-color:#6a9ce9;box-shadow:0 0 0 3px rgba(23,105,224,.12);}
+  button{width:100%;min-height:43px;border-radius:8px;padding:11px 14px;font-size:13px;font-weight:650;cursor:pointer;transition:background .15s,border-color .15s;margin-bottom:10px;}
+  .btn-submit{background:var(--blue);border:1px solid var(--blue);color:#fff;}
+  .btn-submit:hover{background:var(--blue-dark);border-color:var(--blue-dark);}
+  .btn-inject{background:#fff;border:1px solid #d35a5a;color:#b42318;}
+  .btn-inject:hover{background:#fff7f7;border-color:#b42318;}
+  .divider{display:flex;align-items:center;gap:10px;color:#98a2b3;font-size:10px;letter-spacing:1px;margin:17px 0 12px;}
+  .divider:before,.divider:after{content:"";height:1px;background:#e7ebf0;flex:1;}
+  .query-title{font-size:11px;font-weight:700;color:#475467;letter-spacing:.7px;text-transform:uppercase;margin-bottom:8px;}
+  pre{margin:0;background:#f7f9fc;border:1px solid #e2e8f0;color:#344054;padding:13px;border-radius:8px;font:12px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere;min-height:53px;}
+  .result{display:none;margin-top:12px;padding:12px 13px;border:1px solid transparent;border-radius:8px;font-size:12px;line-height:1.55;overflow-wrap:anywhere;}
+  .ok{display:block;background:#ecfdf3;border-color:#abefc6;color:#067647;}
+  .fail{display:block;background:#fff1f0;border-color:#fecdca;color:#b42318;}
+  .result small{display:block;margin-top:3px;opacity:.85;}
+  .foot{font-size:11px;color:#98a2b3;line-height:1.5;margin-top:15px;}
+  @media(max-width:760px){.topbar{padding:0 18px;height:62px;}main{grid-template-columns:1fr;margin-top:22px;gap:18px}.intro{padding:0 2px}.intro h1{font-size:27px}.intro p{max-width:none}.note{margin-top:17px}.card{padding:22px}.top-note{font-size:10px;padding:6px 9px}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><div class="brand-mark" aria-hidden="true">⌑</div><span>Secure Access</span></div>
+  <div class="top-note">Security training demo</div>
+</header>
+<main>
+  <section class="intro">
+    <div class="eyebrow">Application security</div>
+    <h1>Sign in to your account</h1>
+    <p>This local demonstration shows how unsafe SQL query construction can behave when user input is treated as part of a query.</p>
+    <div class="note">
+      <div class="note-icon">ⓘ</div>
+      <div><strong>Local simulation only</strong><span>This page uses an in-browser sample user list. It does not connect to a real database or authenticate a real account.</span></div>
+    </div>
+  </section>
+
+  <section class="card" aria-label="Login demonstration">
+    <div class="card-head">
+      <h2>Welcome back</h2>
+      <p class="sub">Enter your credentials to continue.</p>
+    </div>
+
+    <form id="loginForm" onsubmit="event.preventDefault(); submitLogin(false);">
+      <label for="u">Username</label>
+      <input id="u" name="username" autocomplete="username" value="ADANSAUD" placeholder="Enter username">
+      <label for="p">Password</label>
+      <input id="p" name="password" type="password" autocomplete="current-password" value="Adan@1234" placeholder="Enter password">
+      <button class="btn-submit" type="submit">Sign In</button>
+    </form>
+    <button class="btn-inject" type="button" onclick="submitLogin(true)">⚠ Submit with Injection Payload</button>
+
+    <div class="divider">DEMO OUTPUT</div>
+    <div class="query-title">Query sent to the database</div>
+    <pre id="queryBox">Submit the form to display the simulated query.</pre>
+    <div id="resultBox" class="result" role="status" aria-live="polite"></div>
+    <div class="foot">For classroom demonstration: the query text and result are simulated in this page.</div>
+  </section>
+</main>
+<script>
+// Toy in-browser simulation only; no real database connection is made.
+const users = [
+  { username: "ADANSAUD", password: "Adan@1234" },
+  { username: "admin", password: "supersecret123" }
+];
+
+const INJECTION_USERNAME = "' OR '1'='1'--";
+const INJECTION_PASSWORD = "anything";
+
+function resolve(token, row){
+  token = token.trim();
+  if (token.startsWith("'") && token.endsWith("'")) return token.slice(1, -1);
+  if (token.toLowerCase() === "username") return row.username;
+  if (token.toLowerCase() === "password") return row.password;
+  return token;
+}
+
+function evalCondition(cond, row){
+  const m = cond.match(/^(.+?)\s*=\s*(.+)$/);
+  if (!m) return false;
+  return resolve(m[1], row) === resolve(m[2], row);
+}
+
+function rowMatches(whereClause, row){
+  const orGroups = whereClause.split(/\sOR\s/i);
+  return orGroups.some(group =>
+    group.split(/\sAND\s/i).every(cond => evalCondition(cond, row))
+  );
+}
+
+function submitLogin(useInjection){
+  const uField = document.getElementById("u");
+  const pField = document.getElementById("p");
+  const username = useInjection ? INJECTION_USERNAME : uField.value;
+  const password = useInjection ? INJECTION_PASSWORD : pField.value;
+  if (useInjection){ uField.value = username; pField.value = password; }
+
+  const fullQuery = `SELECT * FROM users WHERE username = '${username}' AND password = '${password}'`;
+  document.getElementById("queryBox").textContent = fullQuery;
+
+  let whereClause = fullQuery.split("WHERE ")[1];
+  const commentIdx = whereClause.indexOf("--");
+  if (commentIdx !== -1) whereClause = whereClause.slice(0, commentIdx);
+  const matches = users.filter(row => rowMatches(whereClause, row));
+
+  const box = document.getElementById("resultBox");
+  if (matches.length > 0){
+    box.className = "result ok";
+    box.innerHTML = "<strong>✓ Login successful.</strong> Rows returned: " +
+      matches.map(r => escapeHTML(r.username)).join(", ") +
+      (useInjection || username.includes("' OR ") ? "<small>Injection behaviour demonstrated in this local simulation; no database was accessed.</small>" : "");
+  } else {
+    box.className = "result fail";
+    box.textContent = "Login failed: no matching row in the local sample data.";
+  }
+}
+
+function escapeHTML(value){
+  return String(value).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+}
+</script>
+</body>
+</html>
